@@ -34,8 +34,8 @@ const TransactionPage = () => {
     {
       id: 'SWM96254',
       amount: 1098.13,
-      size: 3,
-      status: 'Completed',
+      size: 2,
+      status: 'Received',
       items: [
         { name: 'REXO', price: 590.13, quantity: 1 },
         { name: 'Apple Device', price: 508.00, quantity: 1 }
@@ -45,7 +45,7 @@ const TransactionPage = () => {
       id: 'SWM87456',
       amount: 450.75,
       size: 1,
-      status: 'Delivered',
+      status: 'Completed',
       items: [
         { name: 'NEXO', price: 450.75, quantity: 1 }
       ]
@@ -63,10 +63,19 @@ const TransactionPage = () => {
       id: 'SWM65432',
       amount: 156.75,
       size: 2,
-      status: 'Completed',
+      status: 'In Progress',
       items: [
         { name: 'Phone Case', price: 45.00, quantity: 1 },
         { name: 'Screen Protector', price: 111.75, quantity: 1 }
+      ]
+    },
+    {
+      id: 'SWM11223',
+      amount: 89.99,
+      size: 1,
+      status: 'Cancelled',
+      items: [
+        { name: 'Bluetooth Speaker', price: 89.99, quantity: 1 }
       ]
     }
   ];
@@ -74,9 +83,15 @@ const TransactionPage = () => {
   // Filter orders based on active tab
   const getFilteredOrders = () => {
     if (activeTab === 'History') {
-      return allOrders.filter(order => order.status === 'Completed');
+      // History shows completed and cancelled orders
+      return allOrders.filter(order => 
+        order.status === 'Completed' || order.status === 'Cancelled'
+      );
     }
-    return allOrders; // Show all orders for "My Order" tab
+    // My Order shows in progress and received orders
+    return allOrders.filter(order => 
+      order.status === 'In Progress' || order.status === 'Received'
+    );
   };
 
   const orders = getFilteredOrders();
@@ -91,7 +106,7 @@ const TransactionPage = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
-      <View className="flex-row items-center justify-center p-4 relative">
+      <View className="flex-row items-center justify-center p-4 relative mb-8">
         <TouchableOpacity 
           onPress={handleBackPress}
           className="absolute left-4"
@@ -102,22 +117,28 @@ const TransactionPage = () => {
       </View>
 
       {/* Tab Navigation */}
-      <View className="flex-row border-b border-neutral-30 mx-4 mb-2">
+      <View className="flex-row mx-4 mb-8">
         <TouchableOpacity
-          className={`flex-1 py-4 ${activeTab === 'My Order' ? 'border-b-2 border-primary' : ''}`}
+          className="flex-1 py-3"
           onPress={() => setActiveTab('My Order')}
         >
-          <Text className={`text-center font-Manrope text-BodyRegular ${activeTab === 'My Order' ? 'text-primary font-medium' : 'text-neutral-60'}`}>
+          <Text className={`text-center font-Manrope text-base ${activeTab === 'My Order' ? 'text-text font-semibold' : 'text-gray-400'}`}>
             My Order
           </Text>
+          {activeTab === 'My Order' ? (
+            <View className="h-0.5 bg-primary mt-2 mx-auto" style={{ width: 60 }} />
+          ) : null}
         </TouchableOpacity>
         <TouchableOpacity
-          className={`flex-1 py-4 ${activeTab === 'History' ? 'border-b-2 border-primary' : ''}`}
+          className="flex-1 py-3"
           onPress={() => setActiveTab('History')}
         >
-          <Text className={`text-center font-Manrope text-BodyRegular ${activeTab === 'History' ? 'text-primary font-medium' : 'text-neutral-60'}`}>
+          <Text className={`text-center font-Manrope text-base ${activeTab === 'History' ? 'text-text font-semibold' : 'text-gray-400'}`}>
             History
           </Text>
+          {activeTab === 'History' ? (
+            <View className="h-0.5 bg-primary mt-2 mx-auto" style={{ width: 60 }} />
+          ) : null}
         </TouchableOpacity>
       </View>
 

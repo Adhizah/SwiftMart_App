@@ -103,8 +103,7 @@ const OrderTrackingPage = () => {
           <Text className={`text-BodyBold font-Manrope flex-1 ${getStatusColor(trackingData.shipmentStatus)}`}>
             {trackingData.shipmentStatus === 'Completed' && trackingData.shipmentDate
               ? trackingData.shipmentDate
-              : trackingData.shipmentStatus
-            }
+              : trackingData.shipmentStatus}
           </Text>
         </View>
 
@@ -116,8 +115,7 @@ const OrderTrackingPage = () => {
           <Text className={`text-BodyBold font-Manrope flex-1 ${getStatusColor(trackingData.orderReceivedStatus)}`}>
             {trackingData.orderReceivedStatus === 'Received' && trackingData.orderReceivedDate
               ? trackingData.orderReceivedDate
-              : trackingData.orderReceivedStatus
-            }
+              : trackingData.orderReceivedStatus}
           </Text>
         </View>
 

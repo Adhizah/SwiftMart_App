@@ -9,11 +9,11 @@ import { ChevronLeft } from 'lucide-react-native';
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import ShoppingCartTotalModal from './components/ShoppingCartTotalModal';
-import { useCheckout } from '../context/_CheckoutContext';
+import { useCheckout } from '../../../context/_CheckoutContext';
 
 // Image imports
-const houseIcon = require('../../assets/images/house.png');
-const mastercardIcon = require('../../assets/images/mastercard.png');
+const houseIcon = require('../../../../assets/images/house.png');
+const mastercardIcon = require('../../../../assets/images/mastercard.png');
 
 const CheckoutScreen = () => {
   const router = useRouter();
@@ -45,13 +45,13 @@ const CheckoutScreen = () => {
   // Handlers
   const handleEditAddress = () => {
     // Navigate to address selection/edit screen
-    router.push('/(checkout)/AddressSelectionScreen');
+    router.push('/(root)/(tabs)/(checkout)/AddressSelectionScreen');
     console.log('Edit address');
   };
 
   const handleEditPayment = () => {
     // Navigate to payment selection screen
-    router.push('/(checkout)/PaymentSelectionScreen');
+    router.push('/(root)/(tabs)/(checkout)/PaymentSelectionScreen');
   };
 
   const handleOpenOrderModal = () => {
@@ -85,15 +85,15 @@ const CheckoutScreen = () => {
 
   const getPaymentIcon = () => {
     if (!paymentMethod) return mastercardIcon;
-    if (paymentMethod.type === 'VISA') return require('../../assets/images/visa.png');
-    if (paymentMethod.type === 'MasterCard') return require('../../assets/images/mastercard.png');
-    if (paymentMethod.type === 'VISA/MasterCard') return require('../../assets/images/visa-mastercard.png');
+    if (paymentMethod.type === 'VISA') return require('../../../../assets/images/visa.png');
+    if (paymentMethod.type === 'MasterCard') return require('../../../../assets/images/mastercard.png');
+    if (paymentMethod.type === 'VISA/MasterCard') return require('../../../../assets/images/visa-mastercard.png');
     if (paymentMethod.type === 'MobileMoney') {
       switch (paymentMethod.network) {
-        case 'MTN': return require('../../assets/images/mtn.png');
-        case 'Vodafone': return require('../../assets/images/vodafone.png');
-        case 'AirtelTigo': return require('../../assets/images/airteltigo.png');
-        default: return require('../../assets/images/mobile-money.png');
+        case 'MTN': return require('../../../../assets/images/mtn.png');
+        case 'Vodafone': return require('../../../../assets/images/vodafone.png');
+        case 'AirtelTigo': return require('../../../../assets/images/airteltigo.png');
+        default: return require('../../../../assets/images/mobile-money.png');
       }
     }
     return mastercardIcon;
@@ -106,7 +106,7 @@ const CheckoutScreen = () => {
         <View className="flex-row items-center p-4" style={{ marginTop: 16 }}>
           <TouchableOpacity
             className="flex-row items-center"
-            onPress={() => router.push('/(checkout)/CartScreen')}
+            onPress={() => router.push('/(root)/(tabs)/(checkout)/CartScreen')}
           >
             <ChevronLeft size={24} color="#156651" />
             <Text className="text-BodyRegular font-Manrope text-primary ml-2">Back To Cart</Text>
@@ -249,7 +249,7 @@ const CheckoutScreen = () => {
           isDefault: false
         }}
         onTrackOrder={() => {
-          console.log('Track order');
+          router.push('/(orders)/OrderTrackingPage');
           setIsOrderModalVisible(false);
         }}
         onGoToHomePage={() => {

@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { AlignLeft, Calendar, Shield } from 'lucide-react-native'; // Update import
 import { useRouter } from 'expo-router';
-import { useCheckout } from '../../context/_CheckoutContext';
+import { useCheckout } from '../../../../context/_CheckoutContext';
 
 // Image imports
-const visaIcon = require('../../../assets/images/visa.png');
-const mastercardIcon = require('../../../assets/images/mastercard.png');
-const visaMastercardIcon = require('../../../assets/images/visa-mastercard.png');
-const mtnIcon = require('../../../assets/images/mtn.png');
-const vodafoneIcon = require('../../../assets/images/vodafone.png');
-const airteltigoIcon = require('../../../assets/images/airteltigo.png');
+const visaIcon = require('../../../../../assets/images/visa.png');
+const mastercardIcon = require('../../../../../assets/images/mastercard.png');
+const visaMastercardIcon = require('../../../../../assets/images/visa-mastercard.png');
+const mtnIcon = require('../../../../../assets/images/mtn.png');
+const vodafoneIcon = require('../../../../../assets/images/vodafone.png');
+const airteltigoIcon = require('../../../../../assets/images/airteltigo.png');
 
 type PaymentFormProps = {
   type: 'card' | 'mobile';
@@ -189,7 +189,7 @@ const PaymentFormScreen = ({ type, onSave, onCancel }: PaymentFormProps) => {
       onSave && onSave(cardData);
       
       // Navigate to checkout screen
-      router.push('/(checkout)/CheckoutScreen');
+      router.push('/(root)/(tabs)/(checkout)/CheckoutScreen');
     } else {
       // Validate phone number before saving
       if (!validatePhoneNumberForNetwork(mobileMoney.phone, mobileMoney.network)) {
@@ -209,7 +209,7 @@ const PaymentFormScreen = ({ type, onSave, onCancel }: PaymentFormProps) => {
       onSave && onSave(mobileData);
       
       // Navigate to checkout screen
-      router.push('/(checkout)/CheckoutScreen');
+      router.push('/(root)/(tabs)/(checkout)/CheckoutScreen');
     }
   };
 

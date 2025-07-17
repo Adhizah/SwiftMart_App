@@ -18,9 +18,21 @@ const OrderInfoPage = () => {
   };
 
   // Mock comprehensive order data
+  const getOrderStatus = (orderId: string) => {
+    // Map order IDs to their statuses from OrderDetailsPage
+    const statusMap: Record<string, string> = {
+      'SWM93284': 'In Progress',
+      'SWM96254': 'In Progress', 
+      'SWM87456': 'Completed',
+      'SWM78901': 'Completed',
+      'SWM65432': 'Cancelled'
+    };
+    return statusMap[orderId] || 'In Progress';
+  };
+
   const orderInfo = {
     id: orderId || 'SWM93284',
-    status: 'In Progress',
+    status: getOrderStatus(orderId as string || 'SWM93284'),
     amount: 274.13,
     orderDate: '2024-01-10',
     estimatedDelivery: '2024-01-15',
@@ -97,7 +109,16 @@ const OrderInfoPage = () => {
   };
 
   const InfoCard = ({ title, children, icon: Icon }: { title: string; children: React.ReactNode; icon: any }) => (
-    <View className="bg-white border border-neutral-200 rounded-lg p-4 mb-4 shadow-sm">
+    <View className="bg-white rounded-xl p-4 mb-4" style={{
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.15,
+      shadowRadius: 6,
+      elevation: 8,
+    }}>
       <View className="flex-row items-center mb-3">
         <Icon size={20} color="#156651" />
         <Text className="text-BodyBold font-Manrope text-text ml-2">{title}</Text>
@@ -207,7 +228,7 @@ const OrderInfoPage = () => {
           </InfoCard>
 
           {/* Action Buttons */}
-          <View className="flex-row space-x-3 mt-4">
+          <View className="flex-row flex justify-between gap-2 mt-4">
             <TouchableOpacity
               className="flex-1 bg-primary py-3 rounded-lg"
               onPress={() => router.push({
@@ -217,15 +238,17 @@ const OrderInfoPage = () => {
             >
               <Text className="text-white text-center font-Manrope font-medium">Track Item</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 border border-primary py-3 rounded-lg"
-              onPress={() => router.push({
-                pathname: '/(orders)/LeaveReviewPage',
-                params: { orderId: orderInfo.id, itemId: item.id.toString() }
-              })}
-            >
-              <Text className="text-primary text-center font-Manrope font-medium">Leave Review</Text>
-            </TouchableOpacity>
+            {orderInfo.status.toLowerCase() === 'completed' ? (
+              <TouchableOpacity
+                className="flex-1 border border-primary py-3 rounded-lg"
+                onPress={() => router.push({
+                  pathname: '/(orders)/LeaveReviewPage',
+                  params: { orderId: orderInfo.id, itemId: item.id.toString() }
+                })}
+              >
+                <Text className="text-primary text-center font-Manrope font-medium">Leave Review</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -360,7 +383,7 @@ const OrderInfoPage = () => {
         </InfoCard>
 
         {/* Action Buttons */}
-        <View className="flex-row space-x-3 mt-4">
+        <View className="flex-row space-x-6 mt-4">
           <TouchableOpacity
             className="flex-1 bg-primary py-3 rounded-lg"
             onPress={() => router.push({
@@ -370,15 +393,17 @@ const OrderInfoPage = () => {
           >
             <Text className="text-white text-center font-Manrope font-medium">Track Order</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 border border-primary py-3 rounded-lg"
-            onPress={() => router.push({
-              pathname: '/(orders)/LeaveReviewPage',
-              params: { orderId: orderInfo.id }
-            })}
-          >
-            <Text className="text-primary text-center font-Manrope font-medium">Leave Review</Text>
-          </TouchableOpacity>
+          {orderInfo.status.toLowerCase() === 'completed' ? (
+            <TouchableOpacity
+              className="flex-1 border border-primary py-3 rounded-lg"
+              onPress={() => router.push({
+                pathname: '/(orders)/LeaveReviewPage',
+                params: { orderId: orderInfo.id }
+              })}
+            >
+              <Text className="text-primary text-center font-Manrope font-medium">Leave Review</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>

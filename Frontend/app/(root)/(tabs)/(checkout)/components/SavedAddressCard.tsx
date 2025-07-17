@@ -105,7 +105,7 @@ const SavedAddressCard = ({ address, onEdit, onDelete, isSelected, onPress }: Sa
             }}
           >
             <Image
-              source={require('../../../assets/images/saved-address.png')}
+              source={require('../../../../../assets/images/saved-address.png')}
               style={{ width: 28, height: 28 }}
               resizeMode="contain"
             />

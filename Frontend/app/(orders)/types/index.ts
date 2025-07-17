@@ -1,6 +1,6 @@
 export interface Order {
   id: string;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'In Progress' | 'Completed';
+  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled' | 'In Progress' | 'Received' | 'Completed';
   amount: number;
   orderDate: string;
   estimatedDelivery?: string;
@@ -93,6 +93,6 @@ export interface OrderListItem {
   id: string;
   amount: number;
   size: number;
-  status: 'In Progress' | 'Completed' | 'Cancelled' | 'Delivered';
+  status: 'In Progress' | 'Received' | 'Completed' | 'Cancelled';
   items: Pick<OrderItem, 'name' | 'price' | 'quantity'>[];
 }

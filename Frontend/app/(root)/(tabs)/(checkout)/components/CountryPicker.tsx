@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, Modal, SectionList, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
-import { countries } from '../../../constants/countries';
+import { countries } from '../../../../../constants/countries';
 
 const CountryPicker = ({
   selectedCountry,

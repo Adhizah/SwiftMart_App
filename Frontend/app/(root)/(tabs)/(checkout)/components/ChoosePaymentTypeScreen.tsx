@@ -4,8 +4,8 @@ import { Text } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
-const visaMastercardIcon = require('../../../assets/images/visa-mastercard.png');
-const mobileMoneyIcon = require('../../../assets/images/mobile-money.png');
+const visaMastercardIcon = require('../../../../../assets/images/visa-mastercard.png');
+const mobileMoneyIcon = require('../../../../../assets/images/mobile-money.png');
 
 type ChoosePaymentTypeScreenProps = {
   onSelectType: (type: 'card' | 'mobile') => void;

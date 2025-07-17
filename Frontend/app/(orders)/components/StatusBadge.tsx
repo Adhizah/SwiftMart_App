@@ -12,26 +12,26 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, variant = 'default' }
       case 'pending':
       case 'processing':
       case 'in progress':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'border-secondary text-secondary';
       case 'shipped':
       case 'out for delivery':
-        return 'bg-blue-100 text-blue-800';
+        return 'border-blue-400 text-blue-600';
       case 'delivered':
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'border-primary text-primary';
       case 'cancelled':
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'border-red-400 text-red-600';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'border-gray-400 text-gray-600';
     }
   };
 
-  const sizeClass = variant === 'large' ? 'px-3 py-2' : 'px-2 py-1';
-  const textClass = variant === 'large' ? 'text-sm' : 'text-xs';
+  const sizeClass = variant === 'large' ? 'px-3 py-2' : 'px-3 py-1';
+  const textClass = variant === 'large' ? 'text-sm' : 'text-sm';
 
   return (
-    <View className={`${sizeClass} rounded ${getStatusColor(status)}`}>
+    <View className={`${sizeClass} rounded border ${getStatusColor(status)}`}>
       <Text className={`${textClass} font-Manrope ${getStatusColor(status).split(' ')[1]}`}>
         {status}
       </Text>

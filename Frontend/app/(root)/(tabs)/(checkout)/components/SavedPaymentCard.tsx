@@ -3,13 +3,13 @@ import { View, TouchableOpacity, Image } from 'react-native';
 import { Text } from 'react-native';
 
 // Image imports
-const visaIcon = require('../../../assets/images/visa.png');
-const mastercardIcon = require('../../../assets/images/mastercard.png');
-const visaMastercardIcon = require('../../../assets/images/visa-mastercard.png');
-const mobileMoneyIcon = require('../../../assets/images/mobile-money.png');
-const mtnIcon = require('../../../assets/images/mtn.png');
-const vodafoneIcon = require('../../../assets/images/vodafone.png');
-const airteltigoIcon = require('../../../assets/images/airteltigo.png');
+import visaIcon from '../../../../../assets/images/visa.png';
+import mastercardIcon from '../../../../../assets/images/mastercard.png';
+import visaMastercardIcon from '../../../../../assets/images/visa-mastercard.png';
+import mobileMoneyIcon from '../../../../../assets/images/mobile-money.png';
+import mtnIcon from '../../../../../assets/images/mtn.png';
+import vodafoneIcon from '../../../../../assets/images/vodafone.png';
+import airteltigoIcon from '../../../../../assets/images/airteltigo.png';
 
 type PaymentMethod = {
   id: string;

@@ -17,7 +17,7 @@ const OrderTimelineComponent: React.FC<OrderTimelineProps> = ({ timeline }) => {
               {update.status}
             </Text>
             <Text className="text-BodyRegular font-Manrope text-neutral-60">
-              {update.date} {update.time !== 'Pending' ? `at ${update.time}` : ''}
+              {update.date}{update.time !== 'Pending' ? ` at ${update.time}` : ''}
             </Text>
           </View>
         </View>

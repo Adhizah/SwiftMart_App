@@ -84,7 +84,7 @@ const Layout = () => (
           }}
         />
         <Tabs.Screen
-          name="Cart"
+          name="(checkout)"
           options={{
             title: "Cart",
             tabBarIcon: ({ focused }) => (

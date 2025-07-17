@@ -10,44 +10,64 @@ interface OrderCardProps {
 
 const OrderCard: React.FC<OrderCardProps> = ({ order, onPress }) => {
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'In Progress': return 'bg-secondary/20 text-secondary';
-      case 'Completed': return 'bg-primary/20 text-primary';
-      case 'Delivered': return 'bg-green-100 text-green-800';
-      case 'Cancelled': return 'bg-alert/20 text-alert';
-      default: return 'bg-neutral-30 text-neutral-70';
+    switch (status.toLowerCase()) {
+      case 'in progress':
+        return 'border-secondary text-secondary';
+      case 'received':
+        return 'border-primary text-primary';
+      case 'completed':
+        return 'border-primary text-primary';
+      case 'cancelled':
+        return 'border-red-400 text-red-600';
+      default:
+        return 'border-gray-400 text-gray-600';
     }
   };
 
   return (
     <TouchableOpacity
-      className="bg-white border border-neutral-40 rounded-2xl p-5 mb-4 shadow-sm relative"
-      style={{ height: 140 }}
+      className="bg-white rounded-xl p-4"
+      style={{ 
+        height: 142,
+        marginBottom: 32,
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 4,
+        },
+        shadowOpacity: 0.15,
+        shadowRadius: 6,
+        elevation: 8,
+      }}
       onPress={() => onPress(order.id)}
     >
       {/* Top Row: Order ID and Status */}
       <View className="flex-row justify-between items-center mb-3">
-        <Text className="text-BodyBold font-Manrope text-text">Order #{order.id}</Text>
-        <View className={`px-3 py-1 rounded-full ${getStatusColor(order.status)}`}>
-          <Text className={`text-Caption font-Manrope ${getStatusColor(order.status).split(' ')[1]}`}>
+        <Text className="text-lg font-bold text-gray-800 font-Manrope">
+          Order #{order.id}
+        </Text>
+        <View className={`px-3 py-1 rounded border ${getStatusColor(order.status)}`}>
+          <Text className={`text-sm font-Manrope ${getStatusColor(order.status).split(' ')[1]}`}>
             {order.status}
           </Text>
         </View>
       </View>
 
-      {/* Left Side Content */}
-      <View className="flex-1 justify-start">
-        <Text className="text-BodyRegular font-Manrope text-text mb-2">
-          Total Amount: ${order.amount.toFixed(2)}
-        </Text>
-        <Text className="text-BodySmallRegular font-Manrope text-neutral-60">
-          Size {order.size}
-        </Text>
-      </View>
-
-      {/* Chevron Right at Bottom Right */}
-      <View className="absolute bottom-4 right-4">
-        <ChevronRight size={20} color="#156651" />
+      {/* Content Row */}
+      <View className="flex-row justify-between items-center">
+        <View style={{ width: 154 }}>
+          <Text className="text-gray-600 font-Manrope mb-1">
+            Total Amount: <Text className="font-bold">${order.amount.toFixed(2)}</Text>
+          </Text>
+          <Text className="text-gray-600 font-Manrope">
+            Size: <Text className="font-bold">{order.size}</Text>
+          </Text>
+        </View>
+        
+        {/* Chevron Right */}
+        <View className="ml-4">
+          <ChevronRight size={20} color="#666" />
+        </View>
       </View>
     </TouchableOpacity>
   );

@@ -18,7 +18,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import InvitedList from "./components/InvitedList";
 import ShoppingCartTotalModal from "./components/ShoppingCartTotalModal";
 import Modal from "react-native-modal";
-import { useCart } from "../context/_CartContext";
+import { useCart } from "../../../context/_CartContext";
 
 
 
@@ -244,7 +244,7 @@ const CartScreen = () => {
         onCheckout={() => {
           setIsModalVisible(false);
           router.push({
-            pathname: "/(checkout)/CheckoutScreen",
+            pathname: "/(root)/(tabs)/(checkout)/CheckoutScreen",
             params: { cart: JSON.stringify(selectedCart) },
           });
         }}

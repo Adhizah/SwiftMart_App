@@ -53,7 +53,7 @@ const OrderDetailsPage = () => {
             quantity: 1,
             image: require('../../assets/images/sofa.jpeg'),
             description: 'Modern living room sofa',
-            status: 'Completed'
+            status: 'Received'
           },
           {
             id: 2,
@@ -62,7 +62,7 @@ const OrderDetailsPage = () => {
             quantity: 1,
             image: require('../../assets/images/computer.png'),
             description: 'Apple electronic device',
-            status: 'Completed'
+            status: 'Received'
           }
         ]
       },
@@ -76,7 +76,7 @@ const OrderDetailsPage = () => {
             quantity: 1,
             image: require('../../assets/images/diningtable.jpeg'),
             description: 'Elegant dining table',
-            status: 'Delivered'
+            status: 'Completed'
           }
         ]
       },
@@ -104,7 +104,7 @@ const OrderDetailsPage = () => {
             quantity: 1,
             image: require('../../assets/images/buildingblocks.jpeg'),
             description: 'Protective phone case',
-            status: 'Completed'
+            status: 'In Progress'
           },
           {
             id: 2,
@@ -113,7 +113,7 @@ const OrderDetailsPage = () => {
             quantity: 1,
             image: require('../../assets/images/buildingblocks.jpeg'),
             description: 'Tempered glass screen protector',
-            status: 'Completed'
+            status: 'In Progress'
           }
         ]
       }
@@ -159,10 +159,18 @@ const OrderDetailsPage = () => {
   };
 
   const handleReceivedPress = (itemId: number) => {
-    // Handle marking item as received
-    // This could update the order status or show a confirmation
-    console.log('Item received:', itemId);
-    // For now, just show an alert or update local state
+    // Mark order as completed when received is clicked
+    // In a real app, this would update the backend
+    // For now, we'll just navigate to order info showing received status
+    router.push({
+      pathname: '/(orders)/OrderInfoPage',
+      params: { 
+        orderId: orderDetails.id,
+        itemId: itemId.toString(),
+        mode: 'received', // Flag to show order received status
+        statusUpdate: 'completed' // Indicates the order should be marked as completed
+      }
+    });
   };
 
   const handleInfoPress = () => {
@@ -178,19 +186,25 @@ const OrderDetailsPage = () => {
 
   const getSecondaryButtonConfig = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'in progress':
+        return {
+          text: 'Track',
+          onPress: handleTrackPress,
+          style: 'bg-primary'
+        };
+      case 'received':
+        return {
+          text: 'Received',
+          onPress: handleReceivedPress,
+          style: 'bg-primary'
+        };
       case 'completed':
         return {
           text: 'Leave a Review',
           onPress: handleLeaveReviewPress,
           style: 'bg-primary'
         };
-      case 'delivered':
-        return {
-          text: 'Received',
-          onPress: handleReceivedPress,
-          style: 'bg-primary'
-        };
-      default: // In Progress, Processing, etc.
+      default:
         return {
           text: 'Track',
           onPress: handleTrackPress,
@@ -202,13 +216,13 @@ const OrderDetailsPage = () => {
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'in progress':
-        return 'bg-secondary/20';
+        return 'border-secondary';
+      case 'received':
+        return 'border-primary';
       case 'completed':
-        return 'bg-primary/20';
-      case 'delivered':
-        return 'bg-green-100';
+        return 'border-primary';
       default:
-        return 'bg-secondary/20';
+        return 'border-secondary';
     }
   };
 
@@ -216,10 +230,10 @@ const OrderDetailsPage = () => {
     switch (status.toLowerCase()) {
       case 'in progress':
         return 'text-secondary';
+      case 'received':
+        return 'text-primary';
       case 'completed':
         return 'text-primary';
-      case 'delivered':
-        return 'text-green-800';
       default:
         return 'text-secondary';
     }
@@ -247,17 +261,26 @@ const OrderDetailsPage = () => {
       <ScrollView className="flex-1 px-4 pt-2">
         {/* Order Items */}
         {orderDetails.items.map((item) => (
-          <View key={item.id} className="bg-white border border-neutral-40 rounded-2xl p-4 mb-4 shadow-sm relative" style={{ height: 180 }}>
+          <View key={item.id} className="bg-white rounded-xl p-4 mb-8" style={{ 
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 4,
+            },
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            elevation: 8,
+          }}>
             {/* Order Status Badge - Top Right */}
             <View className="absolute top-4 right-4">
-              <View className={`${getStatusBadgeColor(item.status)} px-3 py-1 rounded-full`}>
-                <Text className={`text-Caption font-Manrope ${getStatusTextColor(item.status)}`}>
+              <View className={`border ${getStatusBadgeColor(item.status)} px-3 py-1 rounded`}>
+                <Text className={`text-sm font-Manrope ${getStatusTextColor(item.status)}`}>
                   {item.status}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row h-full">
+            <View className="flex-row mb-4">
               {/* Product Image */}
               <View className="w-28 h-28 rounded-lg overflow-hidden mr-4">
                 <Image 
@@ -268,38 +291,36 @@ const OrderDetailsPage = () => {
               </View>
 
               {/* Product Details */}
-              <View className="flex-1 justify-between">
-                <View>
-                  <Text className="text-BodyBold font-Manrope text-text mb-1">{item.name}</Text>
-                  <Text className="text-BodyBold font-Manrope text-text mb-2">${item.price.toFixed(2)}</Text>
-                  <Text className="text-BodySmallRegular font-Manrope text-neutral-60">
-                    Qty: {item.quantity}
-                  </Text>
-                </View>
-
-                {/* Action Buttons  */}
-                <View className="flex-row space-x-1" style={{ width: '100%' }}>
-                  <TouchableOpacity
-                    onPress={() => handleDetailPress(item.id)}
-                    className="flex-1 border border-primary rounded-lg py-3 px-4"
-                  >
-                    <Text className="text-primary text-center font-Manrope text-BodySmallBold">
-                      Detail
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => {
-                      const buttonConfig = getSecondaryButtonConfig(item.status);
-                      buttonConfig.onPress(item.id);
-                    }}
-                    className={`flex-1 ${getSecondaryButtonConfig(item.status).style} rounded-lg py-3 px-4`}
-                  >
-                    <Text className="text-white text-center font-Manrope text-BodySmallBold">
-                      {getSecondaryButtonConfig(item.status).text}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+              <View className="flex-1">
+                <Text className="text-BodyBold font-Manrope text-text mb-1">{item.name}</Text>
+                <Text className="text-BodyBold font-Manrope text-text mb-2">${item.price.toFixed(2)}</Text>
+                <Text className="text-BodySmallRegular font-Manrope text-neutral-60">
+                  Qty: {item.quantity}
+                </Text>
               </View>
+            </View>
+
+            {/* Action Buttons Below Image */}
+            <View className="flex-row space-x-2 flex justify-between gap-2 ">
+              <TouchableOpacity
+                onPress={() => handleDetailPress(item.id)}
+                className="flex-1 border border-primary rounded-lg py-3 px-4"
+              >
+                <Text className="text-primary text-center font-Manrope text-BodySmallBold">
+                  Detail
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  const buttonConfig = getSecondaryButtonConfig(item.status);
+                  buttonConfig.onPress(item.id);
+                }}
+                className={`flex-1 ${getSecondaryButtonConfig(item.status).style} rounded-lg py-3 px-4`}
+              >
+                <Text className="text-white text-center font-Manrope text-BodySmallBold">
+                  {getSecondaryButtonConfig(item.status).text}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         ))}

@@ -8,7 +8,7 @@ import PaymentFormScreen from './components/PaymentFormScreen';
 // import ChoosePaymentTypeScreen from './components/ChoosePaymentTypeScreen';
 import { PlusIcon } from 'react-native-heroicons/outline';
 import ChoosePaymentTypeScreen from './components/ChoosePaymentTypeScreen';
-import { useCheckout } from '../context/_CheckoutContext';
+import { useCheckout } from '../../../context/_CheckoutContext';
 
 type PaymentMethod = {
   id: string;
@@ -61,7 +61,7 @@ const PaymentSelectionScreen = () => {
     setPaymentMethod(paymentForCheckout);
     
     setShowForm(false);
-    router.push('/(checkout)/CheckoutScreen');
+    router.push('/(root)/(tabs)/(checkout)/CheckoutScreen');
   };
 
   return (

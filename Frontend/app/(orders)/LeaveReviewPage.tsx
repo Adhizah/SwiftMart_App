@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, TextInput, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Star, Camera, X } from 'lucide-react-native';
+import { ChevronLeft, Star, Camera, X, ChevronRight } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -11,7 +11,7 @@ const LeaveReviewPage = () => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<(string | null)[]>([null, null]);
 
   const handleBackPress = () => {
     if (router.canGoBack()) {
@@ -27,9 +27,11 @@ const LeaveReviewPage = () => {
     items: [
       {
         id: 1,
-        name: 'EXERO Wireless Earbuds',
-        price: 230.00,
-        image: 'product-placeholder'
+        name: 'Sony',
+        model: 'S59013',
+        color: 'White',
+        price: 590.13,
+        image: require('../../assets/images/computer.png')
       }
     ]
   };
@@ -56,19 +58,19 @@ const LeaveReviewPage = () => {
     return true;
   };
 
-  const handleAddPhotos = () => {
+  const handleAddPhotos = (index: number) => {
     Alert.alert(
       'Add Photos',
       'Choose how you want to add photos',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Take Photo', onPress: takePhoto },
-        { text: 'Choose from Gallery', onPress: pickFromGallery }
+        { text: 'Take Photo', onPress: () => takePhoto(index) },
+        { text: 'Choose from Gallery', onPress: () => pickFromGallery(index) }
       ]
     );
   };
 
-  const takePhoto = async () => {
+  const takePhoto = async (index: number) => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) return;
 
@@ -80,11 +82,13 @@ const LeaveReviewPage = () => {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setSelectedImages(prev => [...prev, result.assets[0].uri]);
+      const newImages = [...selectedImages];
+      newImages[index] = result.assets[0].uri;
+      setSelectedImages(newImages);
     }
   };
 
-  const pickFromGallery = async () => {
+  const pickFromGallery = async (index: number) => {
     const hasPermission = await requestMediaLibraryPermission();
     if (!hasPermission) return;
 
@@ -93,18 +97,19 @@ const LeaveReviewPage = () => {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
-      allowsMultipleSelection: true,
-      selectionLimit: 5 - selectedImages.length, // Limit total to 5 images
     });
 
-    if (!result.canceled && result.assets) {
-      const newImages = result.assets.map(asset => asset.uri);
-      setSelectedImages(prev => [...prev, ...newImages]);
+    if (!result.canceled && result.assets[0]) {
+      const newImages = [...selectedImages];
+      newImages[index] = result.assets[0].uri;
+      setSelectedImages(newImages);
     }
   };
 
   const removeImage = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    const newImages = [...selectedImages];
+    newImages[index] = null;
+    setSelectedImages(newImages);
   };
 
   const handleSubmitReview = async () => {
@@ -136,35 +141,6 @@ const LeaveReviewPage = () => {
     }, 2000);
   };
 
-  const StarRating = () => (
-    <View className="flex-row justify-center mb-6">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <TouchableOpacity
-          key={star}
-          onPress={() => handleStarPress(star)}
-          className="mx-1"
-        >
-          <Star
-            size={40}
-            color={star <= rating ? '#156651' : '#E5E7EB'}
-            fill={star <= rating ? '#156651' : 'transparent'}
-          />
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
-  const getRatingText = () => {
-    switch (rating) {
-      case 1: return 'Poor';
-      case 2: return 'Fair';
-      case 3: return 'Good';
-      case 4: return 'Very Good';
-      case 5: return 'Excellent';
-      default: return 'Tap to rate';
-    }
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
@@ -179,99 +155,134 @@ const LeaveReviewPage = () => {
       </View>
 
       <ScrollView className="flex-1 p-4">
-        {/* Order Info */}
-        <View className="bg-white border border-neutral-200 rounded-lg p-4 mb-6 shadow-sm">
-          <Text className="text-BodyBold font-Manrope text-text mb-2">Order #{orderData.id}</Text>
-          {orderData.items.map((item, index) => (
-            <View key={index} className="flex-row items-center">
-              <View className="w-12 h-12 bg-neutral-100 rounded-lg mr-3 items-center justify-center">
-                <Text className="text-xs font-Manrope text-neutral-60">IMG</Text>
+        {/* Order Card - Same as Transaction Page */}
+        <TouchableOpacity
+          className="bg-white rounded-xl p-4 mb-6"
+          style={{ 
+            height: 142,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 4,
+            },
+            shadowOpacity: 0.15,
+            shadowRadius: 6,
+            elevation: 8,
+          }}
+        >
+          {/* Single Row Layout */}
+          <View className="flex-row items-center justify-between h-full">
+            {/* Left Side: Image and Product Info */}
+            <View className="flex-row items-center flex-1">
+              <View className="w-20 h-20 bg-neutral-100 rounded-lg mr-4 items-center justify-center overflow-hidden">
+                <Image 
+                  source={orderData.items[0].image}
+                  className="w-full h-full"
+                  resizeMode="contain"
+                />
               </View>
               <View className="flex-1">
-                <Text className="text-BodyBold font-Manrope text-text">{item.name}</Text>
-                <Text className="text-BodyRegular font-Manrope text-neutral-60">${item.price.toFixed(2)}</Text>
+                <Text className="text-gray-800 font-Manrope text-base mb-1">
+                  {orderData.items[0].name}
+                </Text>
+                <Text className="text-gray-800 font-Manrope text-lg font-bold mb-1">
+                  ${orderData.items[0].price.toFixed(2)}
+                </Text>
+                <Text className="text-neutral-60 font-Manrope text-sm">
+                  {orderData.items[0].color}
+                </Text>
               </View>
             </View>
-          ))}
-        </View>
+            
+            {/* Right Side: Chevron */}
+            <View className="ml-4">
+              <ChevronRight size={20} color="#666" />
+            </View>
+          </View>
+        </TouchableOpacity>
 
         {/* Rating Section */}
-        <View className="bg-white border border-neutral-200 rounded-lg p-6 mb-6 shadow-sm">
-          <Text className="text-BodyBold font-Manrope text-text text-center mb-4">
-            How would you rate this product?
-          </Text>
-          <StarRating />
-          <Text className="text-BodyRegular font-Manrope text-neutral-60 text-center">
-            {getRatingText()}
-          </Text>
+        <View className="mb-6">
+          <Text className="text-BodyBold font-Manrope text-text mb-4">Rate</Text>
+          <View className="flex-row mb-4">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <TouchableOpacity
+                key={star}
+                onPress={() => handleStarPress(star)}
+                style={{ marginRight: 8 }}
+              >
+                <Star
+                  size={16}
+                  color={star <= rating ? '#156651' : '#E5E7EB'}
+                  fill={star <= rating ? '#156651' : 'transparent'}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Review Text */}
-        <View className="bg-white border border-neutral-200 rounded-lg p-4 mb-6 shadow-sm">
+        <View className="mb-6">
           <Text className="text-BodyBold font-Manrope text-text mb-3">
-            Write your review
+            Tell us more
           </Text>
           <TextInput
             value={reviewText}
             onChangeText={setReviewText}
-            placeholder="Share your experience with this product..."
+            placeholder="Write a review to let other shoppers know what you think about this transaction."
             multiline
-            numberOfLines={6}
-            className="border border-neutral-200 rounded-lg p-3 text-BodyRegular font-Manrope text-text"
-            style={{ textAlignVertical: 'top' }}
+            numberOfLines={5}
+            className="border border-neutral-200 rounded-xl p-4 text-BodyRegular font-Manrope text-neutral-50 bg-white"
+            style={{ 
+              textAlignVertical: 'top', 
+              height: 114,
+              fontSize: 14,
+              lineHeight: 20
+            }}
             maxLength={500}
+            placeholderTextColor="#9CA3AF"
           />
-          <Text className="text-xs font-Manrope text-neutral-60 mt-2 text-right">
-            {reviewText.length}/500
-          </Text>
         </View>
 
         {/* Add Photos Section */}
-        <View className="bg-white border border-neutral-200 rounded-lg p-4 mb-6 shadow-sm">
-          <Text className="text-BodyBold font-Manrope text-text mb-3">
-            Add photos (optional)
-          </Text>
-          
-          {/* Selected Images Grid */}
-          {selectedImages.length > 0 && (
-            <View className="flex-row flex-wrap mb-4">
-              {selectedImages.map((imageUri, index) => (
-                <View key={index} className="relative mr-2 mb-2">
-                  <Image
-                    source={{ uri: imageUri }}
-                    className="w-20 h-20 rounded-lg"
-                    resizeMode="cover"
-                  />
-                  <TouchableOpacity
-                    onPress={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 bg-alert rounded-full w-6 h-6 items-center justify-center"
-                  >
-                    <X size={12} color="white" />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Add Photo Button */}
-          {selectedImages.length < 5 && (
-            <TouchableOpacity 
-              onPress={handleAddPhotos}
-              className="border-2 border-dashed border-neutral-300 rounded-lg p-6 items-center justify-center"
-            >
-              <Camera size={32} color="#9CA3AF" />
-              <Text className="text-BodyRegular font-Manrope text-neutral-60 mt-2">
-                Tap to add photos
-              </Text>
-              <Text className="text-xs font-Manrope text-neutral-60 mt-1">
-                Help others by showing your product ({selectedImages.length}/5)
-              </Text>
-            </TouchableOpacity>
-          )}
+        <View className="mb-6">
+          <View className="flex-row justify-center">
+            {selectedImages.map((imageUri, index) => (
+              <TouchableOpacity 
+                key={index}
+                onPress={() => handleAddPhotos(index)}
+                className="border-2 border-dashed border-primary rounded-lg items-center justify-center"
+                style={{ 
+                  width: 75, 
+                  height: 75,
+                  marginRight: index === 0 ? 32 : 0
+                }}
+              >
+                {imageUri ? (
+                  <View className="relative w-full h-full">
+                    <Image
+                      source={{ uri: imageUri }}
+                      style={{ width: '100%', height: '100%' }}
+                      className="rounded-lg"
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      onPress={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 bg-alert rounded-full w-6 h-6 items-center justify-center"
+                    >
+                      <X size={12} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Camera size={50} color="#1A1A1A" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Guidelines */}
-        <View className="bg-neutral-50 border border-neutral-200 rounded-lg p-4 mb-6">
+        <View className="bg-neutral-20 border border-neutral-200 rounded-lg p-4 mb-6">
           <Text className="text-BodyBold font-Manrope text-text mb-2">Review Guidelines</Text>
           <Text className="text-BodyRegular font-Manrope text-neutral-60 mb-1">
             • Be honest and helpful to other customers

@@ -4,7 +4,7 @@ import { Redirect } from "expo-router";
 import "@/global.css";
 
 const index = () => {
-  return <Redirect href="/(checkout)/CartScreen" />;
+  return <Redirect href="/(orders)/TransactionPage" />;
 };
 
 export default index;
