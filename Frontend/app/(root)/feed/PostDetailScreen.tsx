@@ -3,6 +3,7 @@ import { Modal, TextInput, ScrollView, Linking, Alert } from 'react-native';
 import { View, ImageBackground, Text, TouchableOpacity, FlatList, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFeed } from '../../context/FeedContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Video, ResizeMode } from 'expo-av';
 import { X, MessageCircle, Share2, Heart, User, Copy, QrCode, MessageSquare, MoreHorizontal } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,10 +42,18 @@ const PostDetailScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const productId = params.id || params.productId;
-  const { posts } = useFeed();
+  const { posts: feedPosts } = useFeed();
+  const [allPosts, setAllPosts] = useState<any[]>(feedPosts);
+  React.useEffect(() => {
+    (async () => {
+      const stored = await AsyncStorage.getItem('myPosts');
+      const myPosts = stored ? JSON.parse(stored) : [];
+      setAllPosts([...myPosts, ...feedPosts]);
+    })();
+  }, [feedPosts]);
   const flatListRef = useRef<FlatList<any>>(null);
   const { width, height } = Dimensions.get('window');
-  const initialIndex = posts.findIndex((p: any) => p.id === productId || p.id === Number(productId));
+  const initialIndex = allPosts.findIndex((p: any) => p.id === productId || p.id === Number(productId));
 
   // Modal state for comments
   const [commentsVisible, setCommentsVisible] = useState(false);
@@ -167,17 +176,26 @@ const PostDetailScreen = () => {
       {/* Shared media rendering and overlay */}
       <View style={{ flex: 1 }}>
         {item.type === 'video' ? (
-          <Video
-            source={{ uri: item.videoUrl }}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width, height }}
-            resizeMode={ResizeMode.COVER}
-            shouldPlay
-            isLooping
-            isMuted
-          />
+          <View style={{ flex: 1, width, height }}>
+            {item.thumbnail && (
+              <ImageBackground
+                source={{ uri: item.thumbnail }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width, height, zIndex: 0 }}
+                resizeMode="cover"
+              />
+            )}
+            <Video
+              source={{ uri: item.uri || item.videoUrl }}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width, height, zIndex: 1 }}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay
+              isLooping
+              isMuted
+            />
+          </View>
         ) : (
           <ImageBackground
-            source={item.imageUrl}
+            source={item.thumbnail ? { uri: item.thumbnail } : item.image ? item.image : item.imageUrl ? item.imageUrl : { uri: item.uri }}
             style={{ flex: 1, width, height }}
             resizeMode="cover"
           />
@@ -188,7 +206,7 @@ const PostDetailScreen = () => {
           <View style={{ position: 'absolute', top: -50, left: 20, right: 20, zIndex: 10 }}>
             <ProductInfoCard
               title={item.title}
-              imageUrl={item.imageUrl}
+              imageUrl={item.thumbnail ? item.thumbnail : item.imageUrl}
               price={item.price || '250.00'}
               oldPrice={item.oldPrice || '500.00'}
             />
@@ -447,7 +465,7 @@ const PostDetailScreen = () => {
   if (initialIndex === -1) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <Text>Product not found.</Text>
+        <Text>Post not found.</Text>
       </View>
     );
   }
@@ -455,7 +473,7 @@ const PostDetailScreen = () => {
   return (
     <FlatList
       ref={flatListRef}
-      data={posts}
+      data={allPosts}
       renderItem={renderItem}
       keyExtractor={item => item.id.toString()}
       pagingEnabled

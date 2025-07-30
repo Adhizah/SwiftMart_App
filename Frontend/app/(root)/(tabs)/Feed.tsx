@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Image, Modal, Pressable, Platform } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { Search, MessageCircleMore, UserCircle, Heart, Plus } from 'lucide-react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import productData from '@/constants/productData';
 import { useUser } from '@/context/UserContext';
 import { useRouter } from 'expo-router';
+import FollowingScreen from '../feed/Following';
+import MyPostsScreen from '../feed/MyPostsScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Feed: React.FC = () => {
   const router = useRouter();
@@ -17,40 +21,70 @@ const Feed: React.FC = () => {
   const [selectedMedia, setSelectedMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
   // Handler to open camera (photo or video)
   const handleOpenCamera = async () => {
-    setUploadModalVisible(false);
-    let permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return;
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      videoMaxDuration: 10,
-      quality: 1,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setSelectedMedia({ uri: asset.uri, type: asset.type === 'video' ? 'video' : 'image' });
+    try {
+      let permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        alert('Camera permission is required to take a photo or video.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: false,
+        videoMaxDuration: 10,
+        quality: 1,
+      });
+      setUploadModalVisible(false);
+      console.log('Camera result:', result);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        router.push({
+          pathname: '/(root)/feed/createPostScreen',
+          params: {
+            uri: asset.uri,
+            type: asset.type === 'video' ? 'video' : 'image',
+          },
+        });
+      }
+    } catch (error) {
+      alert('Failed to open camera. Please try again.');
+      console.error('Camera error:', error);
     }
   };
 
   // Handler to open gallery
   const handleOpenGallery = async () => {
-    setUploadModalVisible(false);
-    let permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: false,
-      videoMaxDuration: 10,
-      quality: 1,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0];
-      setSelectedMedia({ uri: asset.uri, type: asset.type === 'video' ? 'video' : 'image' });
+    try {
+      let permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        alert('Gallery permission is required to select a photo or video.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: false,
+        videoMaxDuration: 10,
+        quality: 1,
+      });
+      setUploadModalVisible(false);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        router.push({
+          pathname: '/(root)/feed/createPostScreen',
+          params: {
+            uri: asset.uri,
+            type: asset.type === 'video' ? 'video' : 'image',
+          },
+        });
+      }
+    } catch (error) {
+      alert('Failed to open gallery. Please try again.');
+      console.error('Gallery error:', error);
     }
   };
 
   // Masonry image heights
   const [imageHeights, setImageHeights] = useState<Record<number, number>>({});
+  const [myPosts, setMyPosts] = useState<any[]>([]);
 
   useEffect(() => {
     // Get natural image sizes for all products
@@ -72,6 +106,11 @@ const Feed: React.FC = () => {
         }
       }
     });
+    // Fetch myPosts from AsyncStorage and merge with inspiration
+    (async () => {
+      const stored = await AsyncStorage.getItem('myPosts');
+      setMyPosts(stored ? JSON.parse(stored) : []);
+    })();
   }, [productData]);
 
   return (
@@ -91,15 +130,11 @@ const Feed: React.FC = () => {
               style={{ backgroundColor: 'transparent', height: 40, color: '#404040' }}
             />
           </View>
-          <TouchableOpacity className="ml-3">
-        <TouchableOpacity className="ml-3" onPress={() => router.push('/(root)/(profile)/Notifications')}>
-          <MessageCircleMore size={28} color="#156651" />
-        </TouchableOpacity>
+          <TouchableOpacity className="ml-3" onPress={() => router.push('/(root)/(profile)/Notifications')}>
+            <MessageCircleMore size={28} color="#156651" />
           </TouchableOpacity>
           <TouchableOpacity className="ml-3" onPress={() => router.push('/(root)/(tabs)/Profile')}>
-        <TouchableOpacity className="ml-3" onPress={() => router.push('/(root)/(tabs)/Profile')}>
-          <UserCircle size={28} color="#156651" />
-        </TouchableOpacity>
+            <UserCircle size={28} color="#156651" />
           </TouchableOpacity>
         </View>
       </View>
@@ -133,69 +168,137 @@ const Feed: React.FC = () => {
       {activeTab === 'inspiration' && (
         <View style={{ flex: 1, paddingHorizontal: 8, paddingTop: 12 }}>
           <MasonryList
-            data={productData}
-            keyExtractor={item => item.id.toString()}
+            data={[...myPosts, ...productData]}
+            keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
             numColumns={2}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 24 }}
-            renderItem={({ item }) => {
-              const product = item as typeof productData[number];
-              return (
-                <TouchableOpacity
-                  key={product.id}
-                  activeOpacity={0.85}
-                  onPress={() => router.push({
-                    pathname: '/(root)/feed/PostDetailScreen',
-                    params: { id: product.id }
-                  })}
-                  style={{
-                    borderRadius: 24,
-                    backgroundColor: '#fff',
-                    overflow: 'hidden',
-                    borderWidth: 1,
-                    borderColor: '#D1D5DB',
-                    marginBottom: 16,
-                    marginHorizontal: 6,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.08,
-                    shadowRadius: 12,
-                    elevation: 3,
-                  }}
-                >
-                  <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
-                    <Image
-                      source={product.image}
-                      style={{ width: '100%', height: imageHeights[product.id] || 180, borderRadius: 0 }}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <UserCircle size={20} color="#9e9e9e" />
-                      <Text style={{ marginLeft: 8, fontSize: 15, color: '#404040', fontWeight: '600' }}>{user?.firstName || 'User'}</Text>
+            renderItem={({ item, i }) => {
+              const post = item as any;
+              if (post.type === 'image' || post.image) {
+                return (
+                  <TouchableOpacity
+                    key={post.id}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({
+                      pathname: '/(root)/feed/PostDetailScreen',
+                      params: { id: post.id }
+                    })}
+                    style={{
+                      borderRadius: 24,
+                      backgroundColor: '#fff',
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      marginBottom: 16,
+                      marginHorizontal: 6,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.08,
+                      shadowRadius: 12,
+                      elevation: 3,
+                    }}
+                  >
+                    <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
+                      <Image
+                        source={post.image ? post.image : { uri: post.thumbnail || post.uri }}
+                        style={{ width: '100%', height: imageHeights[post.id] || 180, borderRadius: 0 }}
+                        resizeMode="cover"
+                      />
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={{ fontSize: 15, color: '#404040', marginRight: 4 }}>0</Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setLikedIds((prev) =>
-                            prev.includes(product.id)
-                              ? prev.filter(id => id !== product.id)
-                              : [...prev, product.id]
-                          );
-                        }}
-                        style={{}}
-                      >
-                        <Heart
-                          size={22}
-                          color={likedIds.includes(product.id) ? "#E44A4A" : "#404040"}
-                          fill={likedIds.includes(product.id) ? "#E44A4A" : "none"}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <UserCircle size={20} color="#9e9e9e" />
+                        <Text style={{ marginLeft: 8, fontSize: 15, color: '#404040', fontWeight: '600' }}>{user?.firstName || 'User'}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 15, color: '#404040', marginRight: 4 }}>0</Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setLikedIds((prev) =>
+                              prev.includes(post.id)
+                                ? prev.filter(id => id !== post.id)
+                                : [...prev, post.id]
+                            );
+                          }}
+                          style={{}}
+                        >
+                          <Heart
+                            size={22}
+                            color={likedIds.includes(post.id) ? "#E44A4A" : "#404040"}
+                            fill={likedIds.includes(post.id) ? "#E44A4A" : "none"}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              } else if (post.type === 'video') {
+                // Render video thumbnail using expo-video
+                return (
+                  <TouchableOpacity
+                    key={post.id}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({
+                      pathname: '/(root)/feed/PostDetailScreen',
+                      params: { id: post.id }
+                    })}
+                    style={{
+                      borderRadius: 24,
+                      backgroundColor: '#fff',
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      marginBottom: 16,
+                      marginHorizontal: 6,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.08,
+                      shadowRadius: 12,
+                      elevation: 3,
+                    }}
+                  >
+                    <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
+                      {/* Video thumbnail or player */}
+                      {post.uri && (
+                        <Video
+                          style={{ width: '100%', height: imageHeights[post.id] || 180, borderRadius: 0, backgroundColor: '#000' }}
+                          source={{ uri: post.uri }}
+                          useNativeControls={false}
+                          resizeMode={ResizeMode.COVER}
+                          isLooping={false}
+                          shouldPlay={false}
                         />
-                      </TouchableOpacity>
+                      )}
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <UserCircle size={20} color="#9e9e9e" />
+                        <Text style={{ marginLeft: 8, fontSize: 15, color: '#404040', fontWeight: '600' }}>{user?.firstName || 'User'}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 15, color: '#404040', marginRight: 4 }}>0</Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setLikedIds((prev) =>
+                              prev.includes(post.id)
+                                ? prev.filter(id => id !== post.id)
+                                : [...prev, post.id]
+                            );
+                          }}
+                          style={{}}
+                        >
+                          <Heart
+                            size={22}
+                            color={likedIds.includes(post.id) ? "#E44A4A" : "#404040"}
+                            fill={likedIds.includes(post.id) ? "#E44A4A" : "none"}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+              // Always return a valid ReactElement (never null)
+              return <View />;
             }}
           />
           {/* Floating Plus Icon */}
@@ -248,23 +351,17 @@ const Feed: React.FC = () => {
               </View>
             </View>
           </Modal>
-        {/* Media Preview after selection */}
-        {selectedMedia && (
-          <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.15)', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
-            {selectedMedia.type === 'image' ? (
-              <Image source={{ uri: selectedMedia.uri }} style={{ width: 320, height: 320, borderRadius: 18, backgroundColor: '#fff' }} resizeMode="contain" />
-            ) : (
-              <View style={{ width: 320, height: 320, borderRadius: 18, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-                {/* Video preview: use expo-av for playback if needed */}
-                <Text style={{ color: '#fff', fontSize: 16 }}>Video selected (max 10s)</Text>
-              </View>
-            )}
-            <TouchableOpacity style={{ marginTop: 18, backgroundColor: '#156651', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 }} onPress={() => setSelectedMedia(null)}>
-              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>Close Preview</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+        </View>
+      )}
+      {activeTab === 'myposts' && (
+        <View style={{ flex: 1 }}>
+          <MyPostsScreen />
+        </View>
+      )}
+      {activeTab === 'following' && (
+        <View style={{ flex: 1 }}>
+          <FollowingScreen />
+        </View>
       )}
     </View>
   );
