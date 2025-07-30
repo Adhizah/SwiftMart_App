@@ -1,343 +1,369 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  Image,
-  Modal,
-  TextInput,
-  Alert,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import { 
-  MessageCircle, 
-  User, 
-  Heart, 
-  MessageSquare, 
-  Share2, 
-  MoreHorizontal,
-  Play,
-  X,
-  ThumbsUp,
-  QrCode,
-  Copy,
-  Shield,
-  Flag,
-  UserX,
-  ShoppingBag,
-} from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, TextInput, Image, Modal, Pressable, Platform } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
-import { useFeed } from '../../context/FeedContext';
-
-const followingUsers = [
-  { id: 'f1', username: 'Alice', avatar: require('@/assets/images/userPic.jpeg') },
-  { id: 'f2', username: 'Bob', avatar: require('@/assets/images/userPic.jpeg') },
-  { id: 'f3', username: 'Charlie', avatar: require('@/assets/images/userPic.jpeg') },
-];
-const followersUsers = [
-  { id: 'r1', username: 'Diana', avatar: require('@/assets/images/userPic.jpeg') },
-  { id: 'r2', username: 'Eve', avatar: require('@/assets/images/userPic.jpeg') },
-  { id: 'r3', username: 'Frank', avatar: require('@/assets/images/userPic.jpeg') },
-];
-const suggestedUsers = [
-  {
-    id: 'suggested1',
-    username: 'Anonymous67348086',
-    avatar: require('@/assets/images/userPic.jpeg'),
-    followers: '0.5K',
-  },
-  {
-    id: 'suggested2',
-    username: 'ProductReviewer',
-    avatar: require('@/assets/images/userPic.jpeg'),
-    followers: '1.2K',
-  },
-];
+import { Search, MessageCircleMore, UserCircle, Heart, Plus } from 'lucide-react-native';
+import MasonryList from '@react-native-seoul/masonry-list';
+import productData from '@/constants/productData';
+import { useUser } from '@/context/UserContext';
+import { useRouter } from 'expo-router';
+import FollowingScreen from '../feed/Following';
+import MyPostsScreen from '../feed/MyPostsScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Feed: React.FC = () => {
   const router = useRouter();
-  const { posts, setPosts } = useFeed();
-  const [activeTab, setActiveTab] = useState<'inspiration' | 'following'>('inspiration');
-  const [showComments, setShowComments] = useState(false);
-  const [showShare, setShowShare] = useState(false);
-  const [showOptions, setShowOptions] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<any>(null);
-  const [comment, setComment] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(true);
-
-  const handleLike = (postId: string) => {
-    setPosts((prevPosts: any[]) =>
-      prevPosts.map((post: any) =>
-        post.id === postId
-          ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? (parseInt(post.likes) - 1).toString() : (parseInt(post.likes) + 1).toString() }
-          : post
-      )
-    );
-  };
-
-  const handleFollow = (userId: string) => {
-    setPosts((prevPosts: any[]) =>
-      prevPosts.map((post: any) =>
-        post.user && post.user.id === userId
-          ? { ...post, user: { ...post.user, isFollowing: !post.user.isFollowing } }
-          : post
-      )
-    );
-  };
-
-  const handleFollowSuggested = (userId: string) => {
-    Alert.alert('Success', 'User followed successfully!');
-  };
-
-  const handleRemoveSuggestion = (userId: string) => {
-    Alert.alert('Removed', 'Suggestion removed from your feed');
-  };
-
-  const handleComment = () => {
-    if (comment.trim()) {
-      setComment('');
-      setShowComments(false);
-      Alert.alert('Success', 'Comment added successfully!');
-    }
-  };
-
-  const handleShare = (platform: string) => {
-    Alert.alert('Shared', `Shared to ${platform}`);
-    setShowShare(false);
-  };
-
-  const handleReport = (type: string) => {
-    Alert.alert('Reported', `${type} reported successfully`);
-    setShowOptions(false);
-  };
-
-  const handleCameraPress = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Camera permission is required to take photos or videos.');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      router.push({
-        pathname: '/(root)/feed/CreatePostScreen',
-        params: { mediaUri: result.assets[0].uri, mediaType: result.assets[0].type },
+  const { user } = useUser();
+  const [activeTab, setActiveTab] = useState<'inspiration' | 'myposts' | 'following'>('inspiration');
+  const [search, setSearch] = useState('');
+  const [likedIds, setLikedIds] = useState<number[]>([]);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<{ uri: string; type: 'image' | 'video' } | null>(null);
+  // Handler to open camera (photo or video)
+  const handleOpenCamera = async () => {
+    try {
+      let permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        alert('Camera permission is required to take a photo or video.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: false,
+        videoMaxDuration: 10,
+        quality: 1,
       });
+      setUploadModalVisible(false);
+      console.log('Camera result:', result);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        router.push({
+          pathname: '/(root)/feed/createPostScreen',
+          params: {
+            uri: asset.uri,
+            type: asset.type === 'video' ? 'video' : 'image',
+          },
+        });
+      }
+    } catch (error) {
+      alert('Failed to open camera. Please try again.');
+      console.error('Camera error:', error);
     }
   };
 
-  const renderPost = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={() => router.push({ pathname: '/(root)/feed/PostDetailModal', params: { post: JSON.stringify(item) } })}
-      style={{ width: '48%', marginBottom: 16 }}
-    >
-      <View className="bg-white rounded-2xl overflow-hidden" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 }}>
-      <View className="relative">
-          <Image source={item.thumbnail || item.imageUrl} className="w-full h-40" resizeMode="cover" />
-        {item.type === 'video' && (
-            <>
-              <View className="absolute top-2 right-2 bg-black/60 rounded px-2 py-1">
-                <Text className="text-white text-xs font-bold">{item.duration}</Text>
-              </View>
-              <View className="absolute inset-0 items-center justify-center flex">
-                <Play size={36} color="white" />
-          </View>
-            </>
-          )}
-          <View className="absolute left-2 right-2 bottom-2 bg-primary rounded-lg p-2 flex-row items-center" style={{ zIndex: 2 }}>
-          <ShoppingBag size={16} color="white" className="mr-2" />
-          <View className="flex-1">
-              <Text className="text-white text-xs font-bold" numberOfLines={1}>{item.product?.name}</Text>
-              <Text className="text-white text-xs">{item.product ? `$${item.product.price}` : ''}</Text>
-            </View>
-          </View>
-        </View>
-        <View className="px-3 pt-3 pb-2">
-          <Text className="text-BodySmallRegular text-text mb-2" numberOfLines={2}>{item.title}</Text>
-        <View className="flex-row items-center justify-between mb-2">
-            <TouchableOpacity className="flex-row items-center" onPress={() => handleLike(item.id)}>
-              <Heart size={16} color={item.isLiked ? '#EF4444' : '#6B7280'} fill={item.isLiked ? '#EF4444' : 'none'} />
-            <Text className="text-xs text-neutral-60 ml-1">{item.likes}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="flex-row items-center" onPress={() => { setSelectedPost(item); setShowComments(true); }}>
-            <MessageSquare size={16} color="#6B7280" />
-            <Text className="text-xs text-neutral-60 ml-1">{item.comments}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="flex-row items-center" onPress={() => { setSelectedPost(item); setShowShare(true); }}>
-            <Share2 size={16} color="#6B7280" />
-            <Text className="text-xs text-neutral-60 ml-1">{item.shares}</Text>
-            </TouchableOpacity>
-          </View>
-          <View className="flex-row items-center mt-1">
-          <Image source={item.user.avatar} className="w-6 h-6 rounded-full mr-2" />
-          <View className="flex-1">
-              <Text className="text-xs text-text font-medium" numberOfLines={1}>{item.user.username}</Text>
-            <Text className="text-xs text-neutral-60">{item.user.followers} followers</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-          </TouchableOpacity>
-  );
+  // Handler to open gallery
+  const handleOpenGallery = async () => {
+    try {
+      let permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        alert('Gallery permission is required to select a photo or video.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsEditing: false,
+        videoMaxDuration: 10,
+        quality: 1,
+      });
+      setUploadModalVisible(false);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        router.push({
+          pathname: '/(root)/feed/createPostScreen',
+          params: {
+            uri: asset.uri,
+            type: asset.type === 'video' ? 'video' : 'image',
+          },
+        });
+      }
+    } catch (error) {
+      alert('Failed to open gallery. Please try again.');
+      console.error('Gallery error:', error);
+    }
+  };
 
-  // ...renderSuggestedUser and other UI code would go here...
+  // Masonry image heights
+  const [imageHeights, setImageHeights] = useState<Record<number, number>>({});
+  const [myPosts, setMyPosts] = useState<any[]>([]);
 
-  const inspirationPosts: any[] = posts;
-  const followingPosts: any[] = [];
+  useEffect(() => {
+    // Get natural image sizes for all products
+    productData.forEach((product) => {
+      if (!imageHeights[product.id]) {
+        // Only works for remote images, for local require() images use a fixed aspect ratio or hardcoded height
+        if (typeof product.image === 'number') {
+          // Local image: fallback to fixed aspect ratio
+          setImageHeights((prev) => ({ ...prev, [product.id]: 180 }));
+        } else if (product.image?.uri) {
+          Image.getSize(product.image.uri,
+            (width, height) => {
+              const cardWidth = 180; // px
+              const displayHeight = Math.max(120, cardWidth * (height / width));
+              setImageHeights((prev) => ({ ...prev, [product.id]: displayHeight }));
+            },
+            () => setImageHeights((prev) => ({ ...prev, [product.id]: 180 }))
+          );
+        }
+      }
+    });
+    // Fetch myPosts from AsyncStorage and merge with inspiration
+    (async () => {
+      const stored = await AsyncStorage.getItem('myPosts');
+      setMyPosts(stored ? JSON.parse(stored) : []);
+    })();
+  }, [productData]);
 
   return (
-    <SafeAreaView className="flex-1 bg-neutral-10">
-      {/* Header */}
-      <View className="flex-row items-center justify-center px-4 py-4 bg-white">
-        <Text className="text-Heading2 text-center flex-1 text-text">Feed</Text>
-        <View className="absolute right-4 items-center gap-4">
-          <TouchableOpacity onPress={handleCameraPress} className="mr-2">
-            <Image source={require('@/assets/images/camera-icon.png')} style={{ width: 24, height: 24 }} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/(root)/(tabs)/Profile')}>
-          <User size={24} color="#156651" />
-        </TouchableOpacity>
+    <View className="flex-1 bg-white">
+      {/* Top Bar with Search and Promo */}
+      <View className="mt-16 px-4">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center flex-1 bg-secondary/10 rounded-2xl px-3" style={{ height: 40 }}>
+            <Search size={24} color="#156651" style={{ marginRight: 8 }} />
+            <TextInput
+              className="flex-1 text-base text-text"
+              placeholder="Come  Earn Freebies 🎁"
+              placeholderTextColor="#9e9e9e"
+              value={search}
+              onChangeText={setSearch}
+              editable={true}
+              style={{ backgroundColor: 'transparent', height: 40, color: '#404040' }}
+            />
+          </View>
+          <TouchableOpacity className="ml-3" onPress={() => router.push('/(root)/(profile)/Notifications')}>
+            <MessageCircleMore size={28} color="#156651" />
+          </TouchableOpacity>
+          <TouchableOpacity className="ml-3" onPress={() => router.push('/(root)/(tabs)/Profile')}>
+            <UserCircle size={28} color="#156651" />
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Tab Navigation */}
-      <View className="flex-row bg-white ">
+      <View className="flex-row bg-white mt-4 text-BodyBold">
         <TouchableOpacity
-          className="flex-1 py-4 items-center"
+          className="flex-1 py-3 items-center"
           onPress={() => setActiveTab('inspiration')}
         >
-          <Text className={`text-BodyBold ${activeTab === 'inspiration' ? 'text-primary' : 'text-neutral-60'}`}>Inspiration</Text>
-          {activeTab === 'inspiration' && (
-            <View className="h-1 bg-primary mt-2 w-8" />
-          )}
+          <Text className={`font-bold text-lg ${activeTab === 'inspiration' ? 'text-primary' : 'text-neutral-400'}`}>Inspiration</Text>
+          {activeTab === 'inspiration' && <View className="h-0.5 bg-primary mt-1 w-8" />}
         </TouchableOpacity>
         <TouchableOpacity
-          className="flex-1 py-4 items-center"
+          className="flex-1 py-3 items-center"
+          onPress={() => setActiveTab('myposts')}
+        >
+          <Text className={`font-bold text-lg ${activeTab === 'myposts' ? 'text-primary' : 'text-neutral-400'}`}>My Post</Text>
+          {activeTab === 'myposts' && <View className="h-0.5 bg-primary mt-1 w-8" />}
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="flex-1 py-3 items-center"
           onPress={() => setActiveTab('following')}
         >
-          <Text className={`text-BodyBold ${activeTab === 'following' ? 'text-primary' : 'text-neutral-60'}`}>Following</Text>
-          {activeTab === 'following' && (
-            <View className="h-1 bg-primary mt-2 w-8" />
-          )}
+          <Text className={`font-bold text-lg ${activeTab === 'following' ? 'text-primary' : 'text-neutral-400'}`}>Following</Text>
+          {activeTab === 'following' && <View className="h-0.5 bg-primary mt-1 w-8" />}
         </TouchableOpacity>
       </View>
 
-      {/* Suggested Users */}
-      {activeTab === 'following' && showSuggestions && (
-        <View className="bg-white pt-4 pb-2 flex-1">
-          <Text className="text-BodyBold text-text mb-3 px-4">Suggested For You</Text>
-          <ScrollView className='h-fit  bg-white' contentContainerClassName='h-[170px] bg-white' horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-            {suggestedUsers.map((item) => (
-              <View key={item.id} className="w-40 bg-white rounded-xl p-3 mr-4 " style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }}>
-                <View className="relative">
-                  <TouchableOpacity 
-                    className="absolute top-1 right-1 z-10"
-                    onPress={() => handleRemoveSuggestion(item.id)}
+      {/* Masonry Product Grid - only show for Inspiration tab */}
+      {activeTab === 'inspiration' && (
+        <View style={{ flex: 1, paddingHorizontal: 8, paddingTop: 12 }}>
+          <MasonryList
+            data={[...myPosts, ...productData]}
+            keyExtractor={(item) => (item.id ? item.id.toString() : Math.random().toString())}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 24 }}
+            renderItem={({ item, i }) => {
+              const post = item as any;
+              if (post.type === 'image' || post.image) {
+                return (
+                  <TouchableOpacity
+                    key={post.id}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({
+                      pathname: '/(root)/feed/PostDetailScreen',
+                      params: { id: post.id }
+                    })}
+                    style={{
+                      borderRadius: 24,
+                      backgroundColor: '#fff',
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      marginBottom: 16,
+                      marginHorizontal: 6,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.08,
+                      shadowRadius: 12,
+                      elevation: 3,
+                    }}
                   >
-                    <X size={16} color="#6B7280" />
+                    <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
+                      <Image
+                        source={post.image ? post.image : { uri: post.thumbnail || post.uri }}
+                        style={{ width: '100%', height: imageHeights[post.id] || 180, borderRadius: 0 }}
+                        resizeMode="cover"
+                      />
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <UserCircle size={20} color="#9e9e9e" />
+                        <Text style={{ marginLeft: 8, fontSize: 15, color: '#404040', fontWeight: '600' }}>{user?.firstName || 'User'}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 15, color: '#404040', marginRight: 4 }}>0</Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setLikedIds((prev) =>
+                              prev.includes(post.id)
+                                ? prev.filter(id => id !== post.id)
+                                : [...prev, post.id]
+                            );
+                          }}
+                          style={{}}
+                        >
+                          <Heart
+                            size={22}
+                            color={likedIds.includes(post.id) ? "#E44A4A" : "#404040"}
+                            fill={likedIds.includes(post.id) ? "#E44A4A" : "none"}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   </TouchableOpacity>
-                  <View className="items-center">
-                    <Image source={item.avatar} className="w-12 h-12 rounded-full mb-2" />
-                    <Text className="text-BodySmallRegular text-text text-center mb-1">{item.username}</Text>
-                    <Text className="text-xs text-neutral-60 mb-3">{item.followers} followers</Text>
-                    <TouchableOpacity
-                      className="bg-primary px-4 py-2 rounded-full w-full"
-                      onPress={() => handleFollowSuggested(item.id)}
-                    >
-                      <Text className="text-BodyBold text-white text-center">Follow</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                );
+              } else if (post.type === 'video') {
+                // Render video thumbnail using expo-video
+                return (
+                  <TouchableOpacity
+                    key={post.id}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({
+                      pathname: '/(root)/feed/PostDetailScreen',
+                      params: { id: post.id }
+                    })}
+                    style={{
+                      borderRadius: 24,
+                      backgroundColor: '#fff',
+                      overflow: 'hidden',
+                      borderWidth: 1,
+                      borderColor: '#D1D5DB',
+                      marginBottom: 16,
+                      marginHorizontal: 6,
+                      shadowColor: '#000',
+                      shadowOpacity: 0.08,
+                      shadowRadius: 12,
+                      elevation: 3,
+                    }}
+                  >
+                    <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
+                      {/* Video thumbnail or player */}
+                      {post.uri && (
+                        <Video
+                          style={{ width: '100%', height: imageHeights[post.id] || 180, borderRadius: 0, backgroundColor: '#000' }}
+                          source={{ uri: post.uri }}
+                          useNativeControls={false}
+                          resizeMode={ResizeMode.COVER}
+                          isLooping={false}
+                          shouldPlay={false}
+                        />
+                      )}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <UserCircle size={20} color="#9e9e9e" />
+                        <Text style={{ marginLeft: 8, fontSize: 15, color: '#404040', fontWeight: '600' }}>{user?.firstName || 'User'}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 15, color: '#404040', marginRight: 4 }}>0</Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setLikedIds((prev) =>
+                              prev.includes(post.id)
+                                ? prev.filter(id => id !== post.id)
+                                : [...prev, post.id]
+                            );
+                          }}
+                          style={{}}
+                        >
+                          <Heart
+                            size={22}
+                            color={likedIds.includes(post.id) ? "#E44A4A" : "#404040"}
+                            fill={likedIds.includes(post.id) ? "#E44A4A" : "none"}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+              // Always return a valid ReactElement (never null)
+              return <View />;
+            }}
+          />
+          {/* Floating Plus Icon */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              right: 24,
+              bottom: 32,
+              backgroundColor: '#156651',
+              borderRadius: 32,
+              width: 56,
+              height: 56,
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              elevation: 6,
+            }}
+            activeOpacity={0.85}
+            onPress={() => setUploadModalVisible(true)}
+          >
+            <Plus size={32} color="#fff" />
+          </TouchableOpacity>
+          {/* Upload Modal */}
+          <Modal
+            visible={uploadModalVisible}
+            animationType="slide"
+            transparent
+            onRequestClose={() => setUploadModalVisible(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: 220 }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#156651', marginBottom: 18, textAlign: 'center' }}>Upload Media</Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#156651', borderRadius: 16, paddingVertical: 14, marginBottom: 14 }}
+                  onPress={handleOpenCamera}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', fontWeight: '600' }}>Take Photo or Video</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#156651', borderRadius: 16, paddingVertical: 14 }}
+                  onPress={handleOpenGallery}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center', fontWeight: '600' }}>Choose from Gallery</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ marginTop: 10, alignSelf: 'center' }} onPress={() => setUploadModalVisible(false)}>
+                  <Text style={{ color: '#156651', fontSize: 16, fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
               </View>
-            ))}
-          </ScrollView>
+            </View>
+          </Modal>
         </View>
       )}
-
-      {/* Feed Content */}
-      {activeTab === 'inspiration' && (
-        <FlatList
-          data={inspirationPosts}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 32 }}
-          columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
-          showsVerticalScrollIndicator={false}
-          renderItem={renderPost}
-        />
+      {activeTab === 'myposts' && (
+        <View style={{ flex: 1 }}>
+          <MyPostsScreen />
+        </View>
       )}
       {activeTab === 'following' && (
-        <FlatList
-          data={followingPosts}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 0, paddingBottom: 32, backgroundColor: '#FFFFFF' }}
-          columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={{ backgroundColor: '#FFFFFF', paddingTop: 16, paddingBottom: 8 }}>
-              {/* Following Section */}
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#222', marginLeft: 20, marginBottom: 8 }}>Following</Text>
-              <ScrollView className='overflow-visible' contentContainerClassName='overflow-visible' horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }} style={{ height: 140 }}>
-                {followingUsers.map((user) => (
-                  <View key={user.id} style={{ width: 140, backgroundColor: '#fff', borderRadius: 20, padding: 12, marginRight: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 6, elevation: 3 }}>
-                    <Image source={user.avatar} style={{ width: 48, height: 48, borderRadius: 24, marginBottom: 6 }} />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#222', textAlign: 'center', marginBottom: 2 }} numberOfLines={1}>{user.username}</Text>
-                    <Text style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>1.2K followers</Text>
-                    <TouchableOpacity style={{ backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#156651', paddingVertical: 6, paddingHorizontal: 18, width: '100%' }} onPress={() => {/* Unfollow logic here */}}>
-                      <Text style={{ color: '#156651', fontWeight: '700', fontSize: 13, textAlign: 'center' }}>Unfollow</Text>
-                </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
-              {/* Followers Section */}
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#222', marginLeft: 20, marginTop: 20, marginBottom: 8 }}>Followers</Text>
-              <ScrollView className='overflow-visible' horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }} style={{ height: 140 }}>
-                {followersUsers.map((user) => (
-                  <View key={user.id} style={{ width: 140, backgroundColor: '#fff', borderRadius: 20, padding: 12, marginRight: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 6, elevation: 3 }}>
-                    <Image source={user.avatar} style={{ width: 48, height: 48, borderRadius: 24, marginBottom: 6 }} />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: '#222', textAlign: 'center', marginBottom: 2 }} numberOfLines={1}>{user.username}</Text>
-                    <Text style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>1.2K followers</Text>
-            </View>
-          ))}
-      </ScrollView>
-              {/* Suggested For You Section */}
-              {showSuggestions && suggestedUsers.length > 0 && (
-                <>
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#222', marginLeft: 20, marginTop: 20, marginBottom: 8 }}>Suggested For You</Text>
-                  <ScrollView className='overflow-visible' horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }} style={{ height: 140, marginBottom: 8 }}>
-                    {suggestedUsers.map((item) => (
-                      <View key={item.id} style={{ width: 140, backgroundColor: '#fff', borderRadius: 20, padding: 12, marginRight: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 6, elevation: 3 }}>
-                        <View style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
-                          <TouchableOpacity onPress={() => handleRemoveSuggestion(item.id)}>
-                            <X size={16} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-                        <Image source={item.avatar} style={{ width: 48, height: 48, borderRadius: 24, marginBottom: 6 }} />
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#222', textAlign: 'center', marginBottom: 2 }} numberOfLines={1}>{item.username}</Text>
-                        <Text style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>{item.followers} followers</Text>
-                        <TouchableOpacity style={{ backgroundColor: '#156651', borderRadius: 16, paddingVertical: 6, paddingHorizontal: 18, width: '100%' }} onPress={() => handleFollowSuggested(item.id)}>
-                          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13, textAlign: 'center' }}>Follow</Text>
-                   </TouchableOpacity>
-                 </View>
-               ))}
-             </ScrollView>
-                </>
-              )}
-            </View>
-          }
-          renderItem={renderPost}
-        />
+        <View style={{ flex: 1 }}>
+          <FollowingScreen />
+        </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 

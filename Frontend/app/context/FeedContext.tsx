@@ -1,87 +1,33 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useState, useContext } from 'react';
+import productData from '../../constants/productData';
 
-// Initial mock data for the feed
-const initialFeedData: any[] = [
-  {
-    id: '1',
-    type: 'video',
-    videoUrl: 'https://example.com/video1.mp4',
-    thumbnail: require('@/assets/images/electronics.png'),
-    duration: '00:26',
-    title: 'Stylish headphones with good sound quality',
-    comments: 251,
-    likes: '3K',
-    shares: 45,
-    user: {
-      id: 'user1',
-      username: 'Anonymous67348086',
-      avatar: require('@/assets/images/userPic.jpeg'),
-      followers: '2.5K',
-      isFollowing: false,
-    },
-    product: {
-      id: 'prod1',
-      name: 'Dazzling Bluetooth Headset Headband Wireless Gaming Headset Universal, Multicolor',
-      price: 250.00,
-      originalPrice: 500.00,
-      discount: 50,
-      image: require('@/assets/images/electronics.png'),
-    },
-    isLiked: false,
+// Map productData to feed post format
+const initialFeedData: any[] = productData.map((product: any) => ({
+  id: product.id.toString(),
+  type: product.mediaType === 'video' ? 'video' : 'image',
+  videoUrl: product.mediaType === 'video' ? product.videoUrl || '' : undefined,
+  imageUrl: product.image,
+  title: product.name,
+  comments: 0,
+  likes: '0',
+  shares: 0,
+  user: {
+    id: 'user1',
+    username: 'Anonymous',
+    avatar: require('@/assets/images/userPic.jpeg'),
+    followers: '0',
+    isFollowing: false,
   },
-  {
-    id: '2',
-    type: 'video',
-    videoUrl: 'https://example.com/video2.mp4',
-    thumbnail: require('@/assets/images/smartphone.jpg'),
-    duration: '00:15',
-    title: 'Amazing wireless earbuds review',
-    comments: 189,
-    likes: '2.1K',
-    shares: 32,
-    user: {
-      id: 'user2',
-      username: 'TechReviewer',
-      avatar: require('@/assets/images/userPic.jpeg'),
-      followers: '1.8K',
-      isFollowing: true,
-    },
-    product: {
-      id: 'prod2',
-      name: 'Premium Wireless Earbuds with Noise Cancellation',
-      price: 180.00,
-      originalPrice: 300.00,
-      discount: 40,
-      image: require('@/assets/images/smartphone.jpg'),
-    },
-    isLiked: true,
+  product: {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    originalPrice: product.originalPrice,
+    discount: product.discount || 0,
+    image: product.image,
   },
-  {
-    id: '3',
-    type: 'image',
-    imageUrl: require('@/assets/images/sneakers.jpeg'),
-    title: 'Perfect fit for my new sneakers',
-    comments: 89,
-    likes: '1.2K',
-    shares: 18,
-    user: {
-      id: 'user3',
-      username: 'FashionLover',
-      avatar: require('@/assets/images/userPic.jpeg'),
-      followers: '3.2K',
-      isFollowing: false,
-    },
-    product: {
-      id: 'prod3',
-      name: 'Comfortable Running Shoes for All Terrains',
-      price: 120.00,
-      originalPrice: 200.00,
-      discount: 40,
-      image: require('@/assets/images/sneakers.jpeg'),
-    },
-    isLiked: false,
-  },
-];
+  isLiked: false,
+}));
 
 const FeedContext = createContext<any>(null);
 
